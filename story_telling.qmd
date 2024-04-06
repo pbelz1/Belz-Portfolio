@@ -1,11 +1,5 @@
 ---
-title: "about me"
-subtitle: "my data science portfolio"
-# use quarto markdown to 
+title: "About Me"
+subtitle: "My Data Science Portfolio"
 ---
-
-# Title 1 Header
-## Title 2 Header
-
-[MarkDown Basics](https://quarto.org/docs/authoring/markdown-basics.html#links-images)
-
+My full name is Peter Andrew Belz Jr, but I go by Andrew. I am 21 years old, a first-year student at BYU-Idaho, and I am studying Data Science. The thing that fascinates me the most about data is the way that it describes the world around us, and how we can use that to make data-driven decisions in almost every aspect of our lives. This portfolio represents my interests and reflects how I feel about how data can be used to change our lives.
