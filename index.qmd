@@ -5,7 +5,8 @@ subtitle: "My Data Science Portfolio"
 ---
 
 # Andrew Belz
-I am 21 years old, and I am a first-year college student. 
+I am 21 years old, and I am a first-year college student.
+ 
 ## Data Science Student
 I am intrigued by the world of data, and I am anxious to learn as much as I can about how to work with data to make inferences and decisions about the world around me. This portfolio should reflect my interest.
 
