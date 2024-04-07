@@ -5,7 +5,7 @@ website:
   title: "Andrew Belz's Data Science Portfolio"
   favicon: Images/favicon.png
   back-to-top-navigation: true
-  repo-url: https://github.com/pbelz1
+  repo-url: "https://github.com/pbelz1"
   #repo-actions: [issue] #if you want to allow others to report issues on your site uncomment this line
 
   page-footer: 
@@ -13,7 +13,7 @@ website:
     left: "Andrew Belz 2024©"
     right: 
       - icon: linkedin
-        href: www.linkedin.com/in/peter-belz-2aba70220
+        href: "www.linkedin.com/in/peter-belz-2aba70220"
 
   navbar:
     background: primary

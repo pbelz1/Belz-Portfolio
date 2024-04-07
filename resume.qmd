@@ -7,7 +7,7 @@ Student at BYU-Idaho
 <div id="webaddress">
 <a href="bel23022@byui.edu">bel23022@byui.edu</a>
 | <a href="https://byuidatascience.github.io/development.html">Data Science Program</a>
-| <a href="www.linkedin.com/in/peter-belz-2aba70220">LinkedIn</a>
+| <a href="https://www.linkedin.com/in/peter-belz-2aba70220">LinkedIn</a>
 | <a href="https://github.com/pbelz1">GitHub</a>
 </div>
 
