@@ -206,5 +206,71 @@
     "title": "Client Report - [Insert Project Title]",
     "section": "",
     "text": "Uncomment the entire section to use this template\n\n\n\n\n\n\n\n Back to top"
+  },
+  {
+    "objectID": "Projects/proj.1.writeup.1.19.23.html",
+    "href": "Projects/proj.1.writeup.1.19.23.html",
+    "title": "Client Report - Project 1: Names",
+    "section": "",
+    "text": "The popularity of my name, Andrew, was on the decline at the time of my birth. You are most likely to meet someone named Brittany around the age of 32. The names Peter, Paul, Martha, and Mary have all seen similar trends in popularity over the years, with some notable differences. The popularity of the names Marty and Martin seem to have been somewhat affected by the movie “Back to the Future,” as I originally hypothesized.",
+    "crumbs": [
+      "DS250 Projects",
+      "Project 1"
+    ]
+  },
+  {
+    "objectID": "Projects/proj.1.writeup.1.19.23.html#elevator-pitch",
+    "href": "Projects/proj.1.writeup.1.19.23.html#elevator-pitch",
+    "title": "Client Report - Project 1: Names",
+    "section": "",
+    "text": "The popularity of my name, Andrew, was on the decline at the time of my birth. You are most likely to meet someone named Brittany around the age of 32. The names Peter, Paul, Martha, and Mary have all seen similar trends in popularity over the years, with some notable differences. The popularity of the names Marty and Martin seem to have been somewhat affected by the movie “Back to the Future,” as I originally hypothesized.",
+    "crumbs": [
+      "DS250 Projects",
+      "Project 1"
+    ]
+  },
+  {
+    "objectID": "Projects/proj.1.writeup.1.19.23.html#questiontask-1",
+    "href": "Projects/proj.1.writeup.1.19.23.html#questiontask-1",
+    "title": "Client Report - Project 1: Names",
+    "section": "Question|Task 1",
+    "text": "Question|Task 1\nHow does your name at your birth year compare to its use historically?\n\nWorking with the Data\nThe first step is loading and graphing the data for my name, Andrew. I created a new dataframe with the relevant data using the .query() function. Then I created a simple line plot showing the usage of of “Andrew” historically, with some visual indicators for the data point located at the year of my birth, 2003.\n\n\nShow the code\n#builds new dataframe with instances of \"Andrew\"\nandrew_df = df.query('name == \"Andrew\"')\n\n#makes graph; x is year, y is total instances\nfig = px.line(\n    andrew_df,\n    x = 'year',\n    y = 'Total',\n    title = 'Historical Use of \"Andrew\"',\n    labels = {'year': 'Year'}\n).update_traces(\n    line_color = 'black')\n\nfig.add_vline(x = 2003, line_dash = 'dash', line_color = 'green')#my birthyear\nfig.add_hline(y = 20421, line_dash = 'dash', line_color = 'red')#total instances for my birth year\n\nfig.update_layout(\n    title_x = 0.5)\n\nfig.show()\n\n\n                                                \n\n\n\n\nAnalysis\nAt the time of my birth, the name Andrew was certainly more popular than the majority of other years. However, my birth occurs several years after Andrew’s peak popularity in 1990.\nHowever, its popularity wasn’t a direct influence in my parent’s decision to name me Andrew. I share a name with my father. So out of curiosity, I decided to compare how the popularity of the name during his birth year, 1977, measures up (displayed in purple):\n\n\nShow the code\nfig.add_vline(x = 1977, line_dash = 'dash', line_color = 'purple')#my father's birth year\n\nfig.show()\n\n\n                                                \n\n\nInterestingly, the name was less popular during the birth year of my father, and it was 13 years before its peak popularity.",
+    "crumbs": [
+      "DS250 Projects",
+      "Project 1"
+    ]
+  },
+  {
+    "objectID": "Projects/proj.1.writeup.1.19.23.html#questiontask-2",
+    "href": "Projects/proj.1.writeup.1.19.23.html#questiontask-2",
+    "title": "Client Report - Project 1: Names",
+    "section": "Question|Task 2",
+    "text": "Question|Task 2\nIf you talked to someone named Brittany on the phone, what is your guess of his or her age? What ages would you not guess?\n\nWorking with the Data\nThe first step in answering this question is pulling the data for the name Brittany and displaying it visually with a line graph. I added a column of data representing real ages rather than years for relevancy.\n\n\nShow the code\nbrittany_df = df.query('name == \"Brittany\"')\nnew_index = [i for i in range(0, len(brittany_df))]\nbrittany_df = brittany_df.set_index(pd.Index(new_index))#sets a new 0-based index for easier referencing to replace index from previous df\n\nbrittany_df['true_ages'] = [2024-brittany_df.at[i, 'year'] for i in range(len(brittany_df))]\n#this creates a new column in the dataframe to allow easier, more relevant data to the question at hand;\n#I wrote this code using list comprehension before we learned about the .apply() function in class\n\nbrit_fig = px.line( #creates line plot\n    brittany_df,\n    x = 'true_ages',\n    y = 'Total',\n    title = 'Total Occurences of \"Brittany\" by Age',\n    labels = {'true_ages' : 'Age', 'Total' : 'Total per age group'}\n)\n\nbrit_fig.update_layout(#formatting title\n    title_x = 0.5\n)\n\nbrit_fig.show()\n\n\n                                                \n\n\nThis graph is useful to help visualize the data; however, the real value lies in some statistical analysis of the data, using the .describe() method:\n\n\nShow the code\n#brittany_df['true_ages'].describe()\n#reference for analysis\n\nbrit_fig.add_vline(x = 20.75, line_dash = 'dot', line_color = 'red')\nbrit_fig.add_vline(x = 44.25, line_dash = 'dot', line_color = 'red')\n\n#displays lines at 25% and 75% quartiles\n\nbrit_fig.show()\n\n\n                                                \n\n\n\n\nAnalysis\n50% of the data falls between the ages of 20.75 and 44.25, with a mean age of 32.5. Thus, it can reasonably be assumed that the if one were to encounter a person named “Brittany,” it is reasonably probable that they are between the ages of 20 and 45, most likely around the age of 32. The range of the age data is [9, 56], so I would assume that the person I am talking to is not younger than 9 or older than 56.",
+    "crumbs": [
+      "DS250 Projects",
+      "Project 1"
+    ]
+  },
+  {
+    "objectID": "Projects/proj.1.writeup.1.19.23.html#questiontask-3",
+    "href": "Projects/proj.1.writeup.1.19.23.html#questiontask-3",
+    "title": "Client Report - Project 1: Names",
+    "section": "Question|Task 3",
+    "text": "Question|Task 3\nMary, Martha, Peter, and Paul are all Christian names. From 1920 - 2000, compare the name usage of each of the four names. What trends do you notice?\n\nWorking with the Data\nFirst, I pulled the data and created a visualization based on the given parameters.\n\n\nShow the code\nmmpp_df = df.query('name == \"Mary\" or name == \"Martha\" or\\\n                name == \"Peter\" or name == \"Paul\"').query('1920 &lt;= year &lt;= 2000')#creates new df\n\nmmpp_fig = px.line(#creates line plot for year vs Total\n    mmpp_df,\n    x = 'year',\n    y = 'Total',\n    color = 'name',\n    title = 'Historical Use of \"Martha,\" \"Mary,\" \"Paul,\" and \"Peter\"',\n    labels = {'year': 'Year'}\n)\n\nmmpp_fig.update_layout(\n    title_x = 0.5\n)\n\n#creates lines that contain the peak of each line\nmmpp_fig.add_vline(x = 1943, line_dash = 'dot', line_color = 'black')\nmmpp_fig.add_vline(x = 1960, line_dash = 'dot', line_color = 'black')\n\nmmpp_fig.show()\n\n\n                                                \n\n\n\n\nAnalysis\nAs shown in the graph, all four names have similar popularity intervals, with each name’s peak popularity occuring between 1947 and 1956. Mary was significantly more popular than the others, with a peak total (53.791k) twice as great as the next most popular name, Paul (25.6625k). All four names have seen significant decline in popularity in recent years. I would speculate that these names have declined in popularity because the Bible has also declined in popularity.",
+    "crumbs": [
+      "DS250 Projects",
+      "Project 1"
+    ]
+  },
+  {
+    "objectID": "Projects/proj.1.writeup.1.19.23.html#questiontask-4",
+    "href": "Projects/proj.1.writeup.1.19.23.html#questiontask-4",
+    "title": "Client Report - Project 1: Names",
+    "section": "Question|Task 4",
+    "text": "Question|Task 4\nThink of a unique name from a famous movie. Plot the usage of that name and see how changes line up with the movie release. Does it look like the movie had an effect on usage?\n\nWorking with the Data\nFor this task, I decided to use the character Marty McFly from “Back to the Future.” The first movie was released in 1985. I reasoned that many parents who look to name their children Marty might legally name their child Martin and call them Marty as a nickname. Thus, both names are included in my analysis.\nHere is the visualization I created; the black line indicates the movie’s release year, and the green line shows a small spike following the release:\n\n\nShow the code\n#creates new df\ndfa = df.query('name == \"Marty\" or name == \"Martin\"')\n\n#creates visualization with year vs Total\ndfa_fig = px.line(\n    dfa,\n    x = 'year',\n    y = 'Total',\n    color = 'name',\n    title = 'Historical Use of \"Martin\" and \"Marty\"',\n    labels = {'year': 'Year'}\n)\ndfa_fig.update_layout(\n    title_x = 0.5\n)\n\ndfa_fig.add_vline(x = 1985, \n                  line_dash = 'dot',\n                  line_color = 'black',\n                  name = 'Release of Back to the Future'\n                  )#release year of movie\ndfa_fig.add_vline(x = 1990, \n                  line_dash = 'dot', \n                  line_color = 'green',\n                  name = 'Increase in \"Martin\" in 1990'\n                  )#small spike in total\ndfa_fig.show()\n\n\n                                                \n\n\n\n\nAnalysis\nBoth names seem to share similar trends in popularity; thus I feel it was right to include both in my analysis. Although Martin’s spike was more pronounced, both names experienced a small increase in popularity in 1990. My theory for this is that the majority of fans of the movie “Back to the Future” were teenagers at the time of the release, and it was several years after that many of them started to have children.\nHowever, I noticed that the names were significantly more popular in the interval from the 1950’s to 1968, and I was curious as to why. After some speculation, I have developed another theory for this. Below, the vertical lines show the bounds of the interval during which Martin Luther King Jr. was heavily involved in the Civil Rights Movement:\n\n\nShow the code\ndfa_fig = px.line(\n    dfa,\n    x = 'year',\n    y = 'Total',\n    color = 'name',\n    title = 'Historical Use of \"Martin\" and \"Marty\"',\n    labels = {'year': 'Year'}\n)\ndfa_fig.update_layout(\n    title_x = 0.5\n)\n\ndfa_fig.add_vline(x = 1955, \n                  line_dash = 'dot', \n                  line_color = 'maroon'\n                )\ndfa_fig.add_vline(x = 1968, \n                  line_dash = 'dot', \n                  line_color = 'maroon'\n                )\n\ndfa_fig.show()\n\n\n                                                \n\n\nBased on this observation, I hypothesize that world events and real people have a much bigger impact on the names of newborn babies than fictional characters do.",
+    "crumbs": [
+      "DS250 Projects",
+      "Project 1"
+    ]
   }
 ]
