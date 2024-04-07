@@ -1,0 +1,455 @@
+---
+title: "Client Report - Project 5: The war with Star Wars"
+subtitle: "Course DS 250"
+author: "Andrew Belz"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+#| label: libraries
+#| include: false
+
+import pandas as pd
+#sets displayed rows
+pd.set_option('display.max_columns', 200)
+
+import numpy as np
+import plotly.express as px
+
+#sklearn
+#plit data
+from sklearn.model_selection import train_test_split
+
+#metrics
+from sklearn import metrics
+
+#parameter search
+from sklearn.model_selection import RandomizedSearchCV
+
+from scipy.stats import randint 
+#used for hyperparameter random distribution
+
+from sklearn.ensemble import RandomForestClassifier
+```
+
+
+## Elevator pitch
+I cleaned up the column names of the data set to allow for use in pandas. I manipulated and formatted the data to allow for use with a machine learning model, which included assigning integer values and one-hot-encoding other categorical variables. I established a target variable and features. I recreated charts from the article to verify a relationship between the article's analysis and the data in GitHub. Then I trained and tested a model to predict whether a person's household made over $50k a year or not based on the data provided. __The model yielded about 58.57% accuracy.__
+
+```{python}
+#| label: project data
+#| code-summary: Read and format project data
+# Include and execute your code here
+df = pd.read_csv(r'C:\Users\andre\Desktop\ds250\data_files\starwars_edited.csv')
+
+#drops first row with descriptions of the columns from original data set
+df = df.drop(index = 0)
+```
+
+## Question|Task 1
+
+__Shorten the column names and clean them up for easier use with pandas. Provide a table or list that exemplifies how you fixed the names.__
+
+Unedited, pandas couldn't even read the column headings. This is how the column headings read originally:
+
+```{python}
+with open(r'C:\Users\andre\Desktop\ds250\data_files\starwars.csv') as starwars:
+  txt = starwars.read()
+txt = txt.split('\n')
+
+txt[0]
+  
+```
+
+There are many untitled columns, and many of the column names are far too long.
+
+I rewrote the CSV file so that the names were shorter, and every column had a proper heading. This is how the new headings appear:
+
+```{python}
+df.columns
+```
+
+These headings should be a little bit more explicit and consistent, and they are in a form that pandas can read.
+
+## Question|Task 2
+
+- __Clean and format the data so that it can be used in a machine learning model. As you format the data, you should complete each item listed below. In your final report provide example(s) of the reformatted data with a short description of the changes made.__
+- __a. Filter the dataset to respondents that have seen at least one film.__
+- __b. Create a new column that converts the age ranges to a single number. Drop the age range categorical column.__
+- __c. Create a new column that converts the education groupings to a single number. Drop the school categorical column__
+- __d. Create a new column that converts the income ranges to a single number. Drop the income range categorical column.__
+- __e. Create your target (also known as “y” or “label”) column based on the new income range column.__
+- __f. One-hot encode all remaining categorical columns.__
+
+
+### Step A
+
+- __a. Filter the dataset to respondents that have seen at least one film.__
+
+```{python}
+#drops na columns for haven't seen any movies
+df = df.loc[~df[df.columns[3:9]].isna().all(axis=1)]
+
+df.head(5)
+```
+
+This chunk filters the data to only include respondents confirmed that they had seen one film. 
+
+### Step B
+
+- __b. Create a new column that converts the age ranges to a single number. Drop the age range categorical column.__
+
+```{python}
+#new column for age ranges
+
+#looks at possible age values
+df['age'].unique()
+
+#new method for replacing ages
+new_ages = {
+  '18-29': 0,
+  '30-44': 1,
+  '45-60': 2,
+  '> 60': 3
+}
+
+#makes changes
+df['age'] = df['age'].replace(new_ages)
+
+print('Unique values: ', df['age'].unique())
+df['age'].head(5)
+```
+
+This code chunk sets each age range to be integer values. With 4 different categories, I used digits 0-3, assigning them incrementally according to chronological order of the ranges. For example, the youngest age range was given a value of 0, while the oldest age range was given a value of 3. It's important to note that I decided not to scale these according to the data itself because the model I decided to go with in the end, `RandomForestClassifier`, doesn't require scaling.
+
+### Step C
+
+- __c. Create a new column that converts the education groupings to a single number. Drop the school categorical column__
+
+```{python}
+#looks at unique education values
+df['education'].unique()
+
+#dict of changes
+new_ed = {
+  'Less than high school degree': 0,
+  'High school degree': 1,
+  'Some college or Associate degree': 2,
+  'Bachelor degree': 3,
+  'Graduate degree': 4
+}
+
+#apply changes
+df['education'] = df['education'].replace(new_ed)
+
+print('Unique values: ', df['education'].unique())
+df['education'].head(5)
+```
+
+This code chunk assigns integer values for the unique possible values in the `'education'` column. With 5 unique values, integers 0-4 were used. Values were assigned incrementally respective to the level of education. For example, 'less than high school degree' was given a value of 0, while 'Graduate degree' was given a value of 4.
+
+### Step D
+
+- __d. Create a new column that converts the income ranges to a single number. Drop the income range categorical column.__
+
+```{python}
+#looks at values in column
+df['household_income'].unique()
+
+#dict method for changes
+new_inc = {
+  '$0 - $24,999': 0,
+  '$25,000 - $49,999': 1,
+  '$50,000 - $99,999': 2,
+  '$100,000 - $149,999': 3,
+  '$150,000+': 4
+}
+
+#applies change
+df['household_income'] = df['household_income'].replace(new_inc)
+
+print('Unique values: ' , df['household_income'].unique())
+df['household_income'].head(5)
+```
+
+With 5 different income ranges, I assigned integer values 0-4 to the ranges with respect to their magnitudes, as above with the previous two columns.
+
+### Step E
+
+- __e. Create your target (also known as “y” or “label”) column based on the new income range column.__
+
+The target should indicate whether the recorded person makes over $50k a year or not. Thus, I will use the `'household_income'` column to create the target.
+
+```{python}
+
+# 1 is yes, 0 is no
+
+df['over50k'] = np.where(
+  df['household_income'] > 1,
+  1,
+  0
+)
+
+df['over50k'].head(5)
+```
+
+Records where the household_income was over $50K were assigned a value of 1 to indicate True, and records where the household_income was under $50k were assigned a value of 0, to indicate False.
+
+### Step F
+
+- __f. One-hot encode all remaining categorical columns.__
+
+The method I chose for this task was to use `pd.get_dummies()`. 
+```{python}
+#creates features
+features = df.drop([
+  'seen_any', #only yes in this filtered df, irrelevant
+  'respondent_id',
+  'over50k',
+  'household_income'
+], axis = 1)
+
+#creates target
+target = df['over50k']
+
+# properly associates positive and negative responses for making better sense of encoded column names
+for i in features.columns[1:7]:
+  features[i] = np.where(features[i].isna() , 'no' , 'yes')
+
+# columns to one-hot encode
+enc_data = [
+'fan',
+'seen_ep1', 
+'seen_ep2', 
+'seen_ep3', 
+'seen_ep4', 
+'seen_ep5', 
+'seen_ep6', 
+'rank_hansolo', 
+'rank_lukeskywalker', 
+'rank_leiaorgana', 
+'rank_anakinskywalker', 
+'rank_obiwankenobi', 
+'rank_emperorpalpatine', 
+'rank_darthvader',
+'rank_landocalrissian', 
+'rank_bobafett', 
+'rank_c3po', 
+'rank_r2d2',
+'rank_jarjarbinks', 
+'rank_padmeamidala', 
+'rank_yoda', 
+'who_shot_first',
+'know_expanded_universe', 
+'fan_of_expanded_universe', 
+'star_trek_fan',
+'gender',
+'location_census_region'
+]
+
+# gets dummies for features; target doesn't need to be encoded
+onehot_feat = pd.get_dummies(features , columns = enc_data, prefix = enc_data)
+
+#renames columns
+onehot_feat.columns = onehot_feat.columns.str.replace(' ' , '_')
+
+#Changes from boolean to int
+for col in onehot_feat.columns[9:]:
+  onehot_feat[col] = onehot_feat[col].astype(int)
+
+for col in onehot_feat.columns:
+  onehot_feat[col] = onehot_feat[col].astype(float)
+  mean = onehot_feat[col].mean()
+  #print(col , mean)
+  onehot_feat[col] = onehot_feat[col].fillna(mean)
+
+target = target.astype(float)
+
+#splits data for testing
+train_input, test_input, train_targets, test_targets = train_test_split(onehot_feat, target, test_size=.3, random_state = 42)
+
+onehot_feat.head(5)
+```
+
+First, I split the data into features and the target. Then I made changes to the values of features to allow for easier encoding, and I made a list of columns that I wanted to get dummies for. I applied the `get_dummies()` function, then cleaned up the new column names for the algorithm. To also allow the algorithm to read the data better, I changed the boolean values to 1 and 0, and I filled null values with the mean of the respective columns. Finally, I chose this moment to split the data into training and testing sets. A ratio of 70/30 training to testing data yielded the best results.
+
+## Question|Task 3
+
+__Validate that the data provided on GitHub lines up with the article by recreating 2 of the visuals from the article.__
+
+The first chart I chose to recreate was the first chart in the article that describes the proportion of respondents that have seen each film out of the respondents that saw any film.
+
+```{python}
+
+seen_eps = features[features.columns[1:7]]
+
+seen_eps = seen_eps.replace('yes' , 1)
+seen_eps = seen_eps.replace('no' , 0)
+
+
+fig = px.bar(
+  y = seen_eps.columns[::-1],
+  x = (seen_eps.mean()*100).round()[::-1],
+  orientation = 'h',
+  title = 'Which Star Wars Movies Have You Seen?'
+).update_layout(
+  title_x = 0.5,
+  yaxis_title = 'Episodes Seen',
+  xaxis_title = 'Percent that have Seen Episode'
+)
+
+fig.show()
+
+```
+
+The proportions and values for each episode correspond to those found in the chart on the website. The second chart I decided to recreate was the last one titled "Who Shot First?"
+
+```{python}
+
+whoshot = features['who_shot_first']
+
+counts = (whoshot.value_counts() / len(whoshot) *100).reset_index()
+
+fig2 = px.histogram(
+  y = [counts['who_shot_first'][1] , counts['who_shot_first'][2] , counts['who_shot_first'][0]],
+  x = [counts['count'][1] , counts['count'][2] , counts['count'][0]],
+  orientation = 'h',
+  title = 'Who Shot First?'
+).update_layout(
+  title_x = 0.5,
+  xaxis_title = 'Percent of Votes',
+  yaxis_title = 'Character'
+)
+
+fig2.show()
+```
+
+This chart's proportions and values also match those found in the chart in the analysis on the website. Given that these two charts match up very well to the charts found on the website, I conclude that the data provided on GitHub corresponds to the analysis provided in the article.
+
+## Question|Task 4
+
+__Build a machine learning model that predicts whether a person makes more than $50k. Describe your model and report the accuracy.__
+
+I tried several different models, and none performed very well. I was unable to train a model to perform at a higher accuracy than about 58.57%. Objectively, this isn't very good. In theory, a pure guess would yield around 50% accuracy. Ultimately, I decided to go with `RandomForestClassifier`, because that model had the highest accuracy of all the models I tried. 
+
+### RandomSearch for RandomForestClassifier
+
+First I hypertuned the parameters using `RandomSearchCV`, which randomly searched for the optimal parameters within the parameter grid that I passed to it.
+
+```{python}
+#| eval: false
+#| echo: true
+#performs random search
+
+param_grid = {
+    'n_estimators': randint(100, 1000, 100),
+    'criterion': ['gini', 'entropy'],
+    'max_depth': randint(3, 20, 100), 
+    'min_samples_split': randint(2, 20, 100),
+    'min_samples_leaf': randint(1, 20, 100), 
+    'max_features': ['auto', 'sqrt', 'log2'], 
+    'bootstrap': [True, False],
+    'random_state': [42]
+}
+
+# Create the RandomizedSearchCV
+random_search = RandomizedSearchCV(
+    RandomForestClassifier(),
+    param_distributions=param_grid,
+    n_iter=50,
+    scoring='accuracy',
+    n_jobs=-1,
+    cv=5,
+    verbose=1,
+    random_state=42
+)
+
+random_search.fit(train_input, train_targets)
+
+best_params = random_search.best_params_
+
+print('Best Parameters: ', best_params)
+```
+
+### Classifier Train and Predict
+
+Using these hyperparameters, I went ahead and trained the model on the training input and the training targets. Then, I had the model predict the testing targets based on the testing data. I measured the model's performance using several different metrics.
+
+```{python}
+classifier = None #resets variable to rerun chunk
+
+classifier = RandomForestClassifier(
+  bootstrap = False,
+  criterion = 'gini',
+  max_depth = 111,
+  max_features = 'sqrt',
+  min_samples_leaf = 105,
+  min_samples_split = 102,
+  n_estimators = 1018,
+  random_state = 42
+)
+
+classifier.fit(train_input , train_targets)
+
+#predict
+targets_predicted = classifier.predict(test_input)
+
+np1 = test_targets.to_numpy()
+np2 = targets_predicted
+
+#Calculates Evaluation Metrics
+acc = round(metrics.accuracy_score(np1 , np2) * 100, 2)
+prec = round(metrics.precision_score(np1, np2) * 100, 2)
+rec = round(metrics.recall_score(np1, np2) * 100, 2)
+f1 = round(metrics.f1_score(np1, np2) * 100, 2)
+
+print('Accuracy:' , str(acc) + '%')
+print('Precision:' , str(prec) + '%')
+print('Recall:' , str(rec) + '%')
+print('f1:' , str(f1) + '%')
+
+```
+
+### Conclusion
+
+The model performs at about 58.57% accuracy, with an f1 score of about 66.67%. In my opinion, this is not very good, but I do think it is understandable. There isn't a very strong relationship between Star Wars opinions and income. Below is a correlation matrix showing the correlation between different variables in the data and the target column `'over50k'`.
+
+```{python}
+
+cordat = onehot_feat
+
+cordat['over50k'] = df['over50k']
+
+correlation_matrix = cordat.corr()
+# Get absolute values of correlation matrix
+abs_corr = correlation_matrix.abs()
+
+# Get the indices of the top n correlation values
+n = 11  # Adjust as needed
+top_corr_cols = abs_corr.nlargest(n, 'over50k')['over50k'].index
+
+# Print top n correlation values
+print(correlation_matrix.loc[top_corr_cols[1:], 'over50k'])
+```
+
+No variable seems to have a higher absolute correlation coefficient value than education, which is about 0.16. The majority of variables have significantly lower correlation. This indicates the data is very weakly correlated to the target, bordering on not correlated at all. This brings into question how relevant this data realistically is for predicting household income. In my opinion, it isn't very useful for that purpose. One thing to try for the future is to avoid one-hot-encoding for use with tree algorithms, per the advice of the article provided in the readings for this project about `pd.get_dummies()`.

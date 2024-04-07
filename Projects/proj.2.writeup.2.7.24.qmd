@@ -1,0 +1,415 @@
+---
+title: "Client Report - Project 2: Late flights and missing data (JSON files)"
+subtitle: "Course DS 250"
+author: "Andrew Belz"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+#| label: libraries
+#| include: false
+import pandas as pd
+import numpy as np
+import plotly.express as px
+```
+
+
+## Elevator pitch
+I transformed the data to make it more useable. I analyzed the delays and determined that San Francisco has the worst ("highest") proportion of delays. The best month to fly to avoid delays is September, although November is a close second. I added a column to the dataset that calculates the total number of weather delays. I performed analysis on the new weather column and determined that Atlanta has the worst weather delays, with Chicago being a close second.
+
+
+```{python}
+
+#this is my file path; I am not sure how the final html document works with reading files, but if I need to resubmit with different file path, please let me know.
+
+df = pd.read_json(r'C:\Users\andre\Desktop\ds250\data_files\flights_missing.json')
+```
+
+## Question|Task 1
+
+__Fix all of the varied missing data types in the data to be consistent (all missing values should be displayed as “NaN”). In your report include one record example (one row) from your new data, in the raw JSON format. Your example should display the “NaN” for at least one missing value.__
+
+There are a number of steps to this process, because there are a number of things wrong with the dataset. Here are some things that I changed or fixed:
+
+- Normalized datatypes to be consistent
+- Filled in missing data with NaN for easier manipulation and analysis
+- Filled in missing information where I could (i.e. missing airport codes)
+- Fixed typos to prevent future bugs
+
+Here is an example row of what the raw `.json` file looks like before my fix: 
+
+```{python}
+row_dict = df.iloc[0].to_dict()
+row_dict #displays how row at index 0 will look in raw .json format
+```
+
+### Step 1
+The first fix I made was matching each airport code with an airport name, just for the sake of completeness in this dataset. All of the codes were present, but some of the names were missing (such as in the 3rd row):
+
+```{python}
+df.filter(['airport_code', 'airport_name']).head(4)
+```
+
+My fix was to update the `airport_name` column with the name of the airport that corresponds to the given code. Note the changes to line 3:
+
+```{python}
+#Exploration code:
+'''
+df['airport_code'].unique()
+#there are no blank or invalid codes in airport_codes
+df['airport_name'].unique()
+#there are blank names
+'''
+
+#gets rid of blank strings, ensures names are in proper places
+#ensures matching {code: name} values, with no unpaired values
+names = [name for name in df['airport_name'].unique()]
+names[2] = names[-1]
+names.pop()
+
+codes = [code for code in df['airport_code'].unique()]
+
+
+#creates dictionary with unique combinations of codes and names
+# dict(zip(unique codes, unique names))
+code_name = \
+  dict(zip(codes, names))
+
+
+#replaces all airport code values in df with appropriate value
+#and all names with appropriate names: for some reason
+df['airport_name'] = df['airport_code'].replace(code_name)
+
+df.filter(['airport_code', 'airport_name']).head(4)
+
+
+```
+
+### Step 2
+I checked to see if there were any fixes to be made to the `months` column: there were. February was spelled as "Febuary," and I foresaw this causing problems in the future. I fixed the spelling error. There were also some blank values needing to be handled. For the sake of efficiency, I handle those later.
+
+Note the mistakes and "n/a" values:
+```{python}
+#This code chunk helps me to find invalid months
+
+months = ['January',
+          'February',
+          'March',
+          'April',
+          'May',
+          'June',
+          'July',
+          'August', 
+          'September', 
+          'October', 
+          'November', 
+          'December']
+invalid_months = df['month'][~df['month'].isin(months)]
+invalid_months.unique()
+
+#example of invalid months
+df.filter(['month']).query('month == "Febuary" or month == "n/a"')[11:17]
+```
+
+Note the fixes:
+```{python}
+
+#fixes months
+monthfixes = {'Febuary': 'February',
+              'n/a': np.nan}
+df['month'] = df['month'].replace(monthfixes)
+
+#displays fixed data
+df.filter(['month']).query('month == "February" or month.isnull()')[11:17]
+
+
+```
+
+### Step 3
+I want to prepare to handle missing values, so I will assign placeholder values to each missing value. This just helps me as I normalize the data. Most notably, it helps me to see which values might be missing.
+
+```{python}
+
+#fills na values with -999 placeholder
+df = df.fillna(-999)
+
+#df.count()
+```
+
+All values are now accounted for.
+
+### Step 4
+The column `num_of_delays_carrier` has an unexpected datatype `object`, so I must find the invalid values. From examining the dataset, I noticed some values contain the `+` character, Which appears to be the issue.
+
+```{python}
+
+#makes the change by getting rid of the '+', then attempts the type change; allows errors to be raised to detect other anomalies in the column
+
+df['num_of_delays_carrier'] = df['num_of_delays_carrier'].str.replace('+', '').astype(np.float64, errors = 'raise')
+
+#df.info()
+```
+
+### Step 5
+I noticed that some of the columns that hold numeric values were `int64` datatypes, which isn't conducive to `np.nan` values. I decided to change these columns into `float64` datatypes. 
+
+```{python}
+for column in df.columns[4:]:
+    df[column] = df[column].astype(np.float64, errors='raise')
+
+#successful
+#df.info()
+```
+
+### Step 6
+The final step involves changing all placeholder values into useable `np.nan` values.
+```{python}
+df = df.replace (-999, np.nan)
+
+#successful
+#df.count()
+```
+
+Here is what the updated `.json` file should look like after my fixes:
+```{python}
+row_dict = df.iloc[0].to_dict()
+row_dict #displays how row at index 0 will look in raw .json format
+```
+
+Here are some of the checks that I ran to ensure that my transformations were successful.
+```{python}
+
+#Run checks on the dataframe for unexpected values
+
+df[~df['airport_code'].isin(codes)] #empty: successful
+
+df[~df['airport_name'].isin(names)] #empty: successful
+
+df[~df['month'].isin(months) & ~df['month'].isna()] #empty: successful
+
+df[~df['year'].isin(range(int(df['year'].min()), int(df['year'].max() + 1))) & df['month'].isna()] #empty:successful
+
+```
+
+## Question|Task 2
+
+__Which airport has the worst delays? Discuss the metric you chose, and why you chose it to determine the “worst” airport. Your answer should include a summary table that lists (for each airport) the total number of flights, total number of delayed flights, proportion of delayed flights, and average delay time in hours.__
+
+For determining the "worst" airport with the "worst" delays, I decided to use the `num_of_delays_total` column. I chose to use the frequency metrics over the duration metrics because I feel that it is more relevant to the average traveler, although it is subjective. If I am walking into an airport, I personally want to know the likelihood that my flight will be delayed more than I want to know how long it will take if my flight is delayed.
+
+### Step 1 
+Here are the requested totals by airport:
+```{python}
+
+grouped_df = df.groupby('airport_code')[[
+  'num_of_flights_total',
+  'num_of_delays_total',
+  ]].sum().sort_values('num_of_flights_total', ascending = False)
+
+#calculates percentage of delays, then turns into string with %
+grouped_df['proportion_of_delays_percent'] = ((grouped_df['num_of_delays_total'] / grouped_df['num_of_flights_total'])*100).round(3).astype(str) + '%'
+
+#gets mean of every code type, then divides minutes by 60 to get hours
+grouped_df['avg_delay_hours'] = ((df.groupby('airport_code')['minutes_delayed_total'].mean()) / (60)).round(3)
+
+grouped_df = grouped_df.reset_index()
+
+# Set custom formatting for floating-point numbers: comma-delimited
+pd.options.display.float_format = None
+
+
+grouped_df
+```
+
+### Step 2
+
+Now to examine the proportions of delays:
+```{python}
+
+grouped_df.filter(['airport_code', 'proportion_of_delays_percent']).sort_values('proportion_of_delays_percent', ascending = False)
+
+```
+
+### Analysis
+With just over 26% of flights being delayed at San Francisco airport, by this metric the San Francisco airport would be considered the airport with the worst delays.
+
+### Step 3 (Extra Analysis)
+It interested me to also explore other definitions of the "worst" delays. I decided to analyze the amount of delays caused by security issues. Security issues are arguably the worst kind of delay because of the potential threat to personal safety.
+```{python}
+group_df2 = df.groupby('airport_code')[[
+  'num_of_delays_total',
+  'num_of_delays_security'
+]].sum().reset_index().sort_values('num_of_delays_security', ascending = False)
+
+group_df2['security_delay_proportion'] = ((group_df2['num_of_delays_security'] / group_df2['num_of_delays_total']
+)*100).round(2).astype(str) + '%'
+group_df2.filter(['airport_code', 'security_delay_proportion']).sort_values('security_delay_proportion', ascending = False)
+```
+
+By this metric, Salt Lake City has the "worst" delays.
+
+
+## Question|Task 3
+
+__What is the best month to fly if you want to avoid delays of any length?__
+
+### Step 1
+
+If the total number of delays are grouped by month, we can see how many delays there were per month:
+```{python}
+month_df = df.groupby('month')[['num_of_delays_total', 'num_of_flights_total']].sum().reset_index()
+
+#formats it as a string, but changes back later to perform operations
+month_df['percent_delayed'] = ((month_df['num_of_delays_total'] / month_df['num_of_flights_total']) * 100).round(2).astype(str) + '%'
+
+month_df = month_df.dropna(subset=['month'])
+
+month_df
+```
+
+### Analysis
+
+```{python}
+#changes column back to float
+month_df['percent_delayed'] = month_df['percent_delayed'].str.rstrip('%').astype(float)
+
+#makes list of colors to differentiate minimum from the rest of the data
+colors = list(np.where(
+  month_df['percent_delayed'] == month_df['percent_delayed'].min(),
+  'red',
+  'blue'
+))
+
+delay_fig = px.bar(
+  month_df,
+  x = 'month',
+  y = 'percent_delayed',
+  labels = {'month': 'Month', 'percent_delayed': 'Percentage of Delayed Flights'},
+  title = 'Percentage of Delayed Flights by Month',
+  category_orders={'month': months}, #sorts chronologically
+  color = colors
+).update_layout(title_x = 0.5)
+
+delay_fig.show()
+```
+
+It appears that the fewest delays, as well as the lowest percentage of flights that are delayed, occur in September and November; thus the best months to fly to avoid delays are those. September has slightly more flights and slightly more delays, but a slightly lower proportion of delayed flights than November.
+
+## Question|Task 4
+
+__According to the BTS website, the “Weather” category only accounts for severe weather delays. Mild weather delays are not counted in the “Weather” category, but are actually included in both the “NAS” and “Late-Arriving Aircraft” categories. Your job is to create a new column that calculates the total number of flights delayed by weather (both severe and mild). You will need to replace all the missing values in the Late Aircraft variable with the mean. Show your work by printing the first 5 rows of data in a table. Use these three rules for your calculations:__
+
+__Use these three rules for your calculations:__
+
+- _100% of delayed flights in the Weather category are due to weather_
+- _30% of all delayed flights in the Late-Arriving category are due to weather._
+- _From April to August, 40% of delayed flights in the NAS category are due to weather. The rest of the months, the proportion rises to 65%._
+
+With the given rules, I made the appropriate calculations and created a new column. For these calculations, to handle NaN values, I decided to drop any values where there were NaN values for `month` to avoid biasing the data. The dataset is still sufficiently large without these rows. I replaced any NaN values for `num_of_delays_late_aircraft`.
+
+```{python}
+'''Parameters:
+1 * 'num_of_delays_weather'
+0.3 * 'num_of_delays_late_aircraft'
+April to August, 0.4 * 'num_of_delays_nas'
+September to March, 0.65 * 'num_of_delays_nas'
+'''
+#check for nan values
+df[df['num_of_delays_late_aircraft'].isna()]
+
+#calculates mean
+mean = df['num_of_delays_late_aircraft'].mean()
+
+#replaces NaN values in 'num_of_delays_late_aircraft' with mean
+df['num_of_delays_late_aircraft'] = np.where(
+  df['num_of_delays_late_aircraft'].isna(),
+  mean,
+  df['num_of_delays_late_aircraft']
+)
+
+#check: successful
+df[df['num_of_delays_late_aircraft'].isna()]
+
+#empty
+df[df['num_of_delays_nas'].isna() & ~(df['num_of_delays_weather'] >= 0)]
+df[df['num_of_delays_weather'].isna() & ~(df['num_of_delays_weather'] >= 0)]
+
+#in order to work with the dataset, I need to change NaN values to 0, but I must avoid conflicts with values that are truly zero when trying to convert the data back to NaN. So I make and apply changes to a dummy df
+
+#drops columns with no data for month to avoid biasing the data
+dummy_df = df.copy().dropna(subset=['month'])
+
+#categories of months
+summermonths = ['April', 'May', 'June', 'July', 'August']
+wintermonths = ['January', 'February', 'March', 'September', 'October', 'November', 'December']
+
+# creates new column with given calculations
+df['total_weather_delays'] = dummy_df['num_of_delays_weather'] + \
+  (0.3 * dummy_df['num_of_delays_late_aircraft'])  + \
+    np.where(
+      dummy_df['month'].isin(summermonths), 
+      dummy_df['num_of_delays_nas'] * 0.4, 
+      dummy_df['num_of_delays_nas'] * 0.65
+      ) 
+```
+
+Here is an example of the new data for the new column, `total_weather_delays`.
+```{python}
+#displays new column
+df.filter(['total_weather_delays']).round(2).head(6)
+
+```
+
+
+## Question|Task 5
+
+__Using the new weather variable calculated above, create a barplot showing the proportion of all flights that are delayed by weather at each airport. Discuss what you learn from this graph.__
+
+### Step 1
+I grouped the sum of the values of `total_weather_delays` by each airport, then plotted them.
+```{python}
+
+#sums total weather delays grouped by airport
+grouped_airport = df.groupby('airport_code')['total_weather_delays'].sum().reset_index().sort_values(['total_weather_delays'])
+
+#creates bar graph of the data
+fig = px.bar(
+  grouped_airport,
+  x = 'airport_code',
+  y = 'total_weather_delays',
+  labels = {'airport_code':'Airport Code', 'total_weather_delays':'Total Weather Delays'},
+  title = 'Total Weather Delays By Airport'
+).update_layout(
+  title_x = 0.5
+)
+
+fig.show()
+```
+
+### Analysis
+Based on this data, It appears that Atlanta and Chicago have the worst airport delays due to weather. I would speculate that of the list of airports present in the data, Atlanta deals with the most hurricanes. Chicago likely deals with a lot of blizzards. 
+
+With more mild weather on average, it is not so surprising that San Diego and Dulles have the fewest weather delays. 
+
+It surprised me that San Francisco experiences more weather delays than Denver. Without doing further research, it's difficult to understand why this is, but my guess is that Denver might be more prepared to handle weather delays than San Francisco. 
+

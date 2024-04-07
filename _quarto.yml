@@ -10,7 +10,7 @@ website:
 
   page-footer: 
     border: true
-    left: "Andrew Belz 2023©"
+    left: "Andrew Belz 2024©"
     right: 
       - icon: linkedin
         href: www.linkedin.com/in/peter-belz-2aba70220
@@ -47,19 +47,19 @@ website:
           file: projects.qmd
         - text: "---"
         - text: "Project 1"
-          file: Projects/project1.qmd
+          file: Projects/proj.1.writeup.1.19.23.qmd
         - text: "---"
         - text: "Project 2"
-          file: Projects/project2.qmd
+          file: Projects/proj.2.writeup.2.7.24.qmd
         - text: "---"
         - text: "Project 3"
-          file: Projects/project3.qmd
+          file: Projects/proj.3.writeup.2.22.24.qmd
         - text: "---"
         - text: "Project 4"
-          file: Projects/project4.qmd
+          file: Projects/proj.4.writeup.3.2.24.qmd
         - text: "---"
         - text: "Project 5"
-          file: Projects/project5.qmd
+          file: Projects/proj.5.writeup.3.18.24.qmd
         - text: "---"
         #continue the pattern if you need more links
         #copy paste from title and keep it indented to sidebar to add additonal sidebar navigation for other pages

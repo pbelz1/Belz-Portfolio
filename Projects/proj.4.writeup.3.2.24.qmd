@@ -1,0 +1,414 @@
+---
+title: "Client Report - Project 4: Can You Predict That?"
+subtitle: "Course DS 250"
+author: "Andrew Belz"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+#| label: libraries
+#| include: false
+import pandas as pd
+import numpy as np
+import plotly_express as px
+
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn import metrics #Import scikit-learn metrics functions
+
+from sklearn.model_selection import train_test_split #for splitting the data
+
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV #for hyperparameter tuning
+
+from scipy.stats import randint #used for hyperparameter random distribution
+
+```
+
+
+## Elevator pitch
+_I built a model that predicts with about __93%__ accuracy whether a house was built before 1980 or not._ In this report, you will find an analysis and evaluation of the correlation between different features of the data and the value of `'before1980'`. Then a classification model is tuned and trained to make the desired prediction. A detailed description of the process is included. Then you will find an exploration of feature importance given by the model. Lastly, you will find an evaluation of the model's performance, using several different metrics. 
+
+```{python}
+#| label: project data
+#| code-summary: Read and format project data
+# Include and execute your code here
+
+url = r'https://raw.githubusercontent.com/byuidatascience/data4dwellings/master/data-raw/dwellings_ml/dwellings_ml.csv'
+df = pd.read_csv(url)
+```
+
+## Question|Task 1
+
+__Create 2-3 charts that evaluate potential relationships between the home variables and `'before1980'`. Explain what you learn from the charts that could help a machine learning algorithm.__
+
+I chose to use histograms because I am comparing two aggregate functions rather than a distribution of data; thus my options are limited.
+
+### First Variable
+I thought that the condition of the house could serve as an indicator for the age of the house. I chose to evaluate those houses in worst condition `'condition_AVG'` and best condition `'condition_Excel'`. Of course, this is operating under the understanding I have that these are the extremes in the 'condition' categories. 
+
+```{python}
+#group by whether house was built before 1980 and after 1980, sum condition of house
+
+cond = df.groupby('before1980')[['condition_AVG',
+       'condition_Excel', 'condition_Fair', 'condition_Good',
+       'condition_VGood']].sum().reset_index()
+cond['before1980'] = np.where(cond['before1980'] == 0 , 'After' , 'Before')
+
+fig = px.histogram(
+  cond,
+  x = 'before1980',
+  y = 'condition_AVG',
+  labels = {'before1980': 'Before 1980?' , 'condition_AVG': 'Total of Average Condition'},
+  color = 'condition_AVG',
+  title = 'Average Condition'
+).update_layout(
+  title_x = 0.5,
+  yaxis_title = 'Total of Average Condition'
+)
+
+fig2 = px.histogram(
+  cond,
+  x = 'before1980',
+  y = 'condition_Excel',
+  labels = {'before1980': 'Before 1980?' , 'condition_Excel': 'Total of Excellent Condition'},
+  color = 'condition_Excel',
+  title = 'Excellent Condition'
+).update_layout(
+  title_x = 0.5,
+  yaxis_title='Total of Excellent Condition'
+
+)
+
+fig.show() 
+fig2.show()
+```
+
+Based on the data, it appears that houses built before 1980, compared to houses built after 1980, are more frequently in average condition, and less frequently in excellent condition. This could potentially serve as an indicator for our machine learning model.
+
+### Variables 2-4
+The second set of variables I decided to compare was architcture styles. I reasoned that different styles might trend at different times.
+
+```{python}
+
+#creates style df
+style = df.groupby('before1980')[['arcstyle_BI-LEVEL', 'arcstyle_CONVERSIONS', 'arcstyle_END UNIT',
+       'arcstyle_MIDDLE UNIT', 'arcstyle_ONE AND HALF-STORY',
+       'arcstyle_ONE-STORY', 'arcstyle_SPLIT LEVEL', 'arcstyle_THREE-STORY',
+       'arcstyle_TRI-LEVEL', 'arcstyle_TRI-LEVEL WITH BASEMENT',
+       'arcstyle_TWO AND HALF-STORY', 'arcstyle_TWO-STORY']].sum().reset_index()
+
+style['before1980'] = np.where(style['before1980'] == 0 , 'After' , 'Before')
+
+#returns columns where yes > no
+[name for name in style.columns if style.at[1 , name] > style.at[0 , name]]
+
+#creates charts for most significant variables
+for i in ['arcstyle_ONE AND HALF-STORY','arcstyle_ONE-STORY', 'arcstyle_CONVERSIONS']:
+  yval = i[9:] #identifier of column
+
+  fig = px.histogram(
+    style, 
+    x = 'before1980',
+    y = i,
+    title = f'Architecture Style- {yval}',
+    color = 'before1980'
+  ).update_layout(
+    title_x = 0.5,
+    yaxis_title = yval,
+    
+  )
+
+  fig.show()
+```
+
+Seven styles are present more often in houses built before 1980, but the three types that show the largest disparity are `'arcstyle_CONVERSIONS'`, `'arcstyle_ONE AND HALF-STORY'`, and `'arcstyle_ONE-STORY'`. It is conceivable that houses built before 1980 might be more likely to fit into one of these categories.
+
+### Correlation Calculations
+I created a correlation matrix to see how each feature variable relates to the target variable.
+
+```{python}
+#code taken from Slack
+
+correlation_matrix = df.drop(columns = ['parcel' , 'yrbuilt']).corr()
+# Get absolute values of correlation matrix
+abs_corr = correlation_matrix.abs()
+
+# Get the indices of the top n correlation values
+n = 15
+# Adjust as needed
+top_corr_cols = abs_corr.nlargest(n, 'before1980')['before1980'].index
+
+#print corr matrix results
+print(correlation_matrix.loc[top_corr_cols[1:], 'before1980'])
+
+# dict of top 15 correlation values
+c = dict(correlation_matrix.loc[top_corr_cols[1:], 'before1980'])
+
+cfig = px.bar(
+  x = list(c.keys()),
+  y= list(c.values()),
+  color = list(c.keys()),
+  title = "Variables with Highest Correlation to 'before1980'" 
+).update_layout(
+  title_x = 0.5,
+  yaxis_title = 'Correlation'
+).update_xaxes(
+  tickvals = [],
+  ticktext = []
+  )
+
+cfig.show()
+```
+
+Some of the variables that I previously compared do exhibit moderate correlation to the target variable, such as `'arcstyle_ONE-STORY'`, `'arcstyle_TWO-STORY'`, `'condition_AVG'`, and `'condition_Good'`. To avoid issues with dimensionality, I could potentially choose to feed the model only the features with the highest correlation to the target variable. The downside to this is that the model might miss more subtle trends in the data that could be important for maximizing accuracy.
+
+## Question|Task 2
+
+__Build a classification model labeling houses as being built “before 1980” or “during or after 1980”. Your goal is to reach or exceed 90% accuracy. Explain your final model choice (algorithm, tuning parameters, etc) and describe what other models you tried.__
+
+### Explanation
+
+I tried several different models, including `GaussianNB()` and `DecisionTreeClassifier`. However, I ended up rejecting both due to the accuracy being too low. I ultimately went with `RandomForestClassifier()`, due to its higher accuracy. I tried several different methods for finding tuning parameters, including utilizing hyperparameter tuning methods
+like `GridSearchCV` and `RandomizedSearchCV`. I spent some time researching the different hyperparameters available to tune in `RandomForestClassifier()`, and I picked several to try that seemed to be the most potentially impactful to me. The optimal parameters given by the different tuning methods I tried didn't seem to result in more than a 1% increase in accuracy.
+
+### Step 1
+This code chunk picks the features and the target, and splits them into training, testing, x and y values. I dropped non-numeric variables, as well as the target variable `'before1980'`, and the variable `'yrbuilt'` which was used to create the target variable. I picked the train-test split somewhat arbitrarily; there was little variation between different split ratios. I went with a 70/30 percent train-test ratio to allow for a higher amount of test data.
+
+```{python}
+#prep df
+#df.info()
+
+target = df['before1980']
+
+features = df.drop(columns = ['before1980' , 'parcel' , 'yrbuilt'])
+features.columns
+
+#features.info()
+
+#note that randomforest doesn't require scaling
+
+#try a 70-30 split
+
+train_data, test_data, train_targets, test_targets = train_test_split(features, target, test_size=.3)
+```
+
+### Step 2: 
+While experimenting with my model, I decided to implement two different parameter tuning methods: `GridSearchCV` and `RandomSearchCV`. This helped me to find close-to-optimal parameters, and implemented cross-validation.
+
+#### Exhaustive Grid Search
+```{python}
+#| eval: false
+#| echo: true
+#performs grid search
+
+#gets hyperaparameters for tuning
+RandomForestClassifier().get_params()
+
+#parameter grid to test
+param_grid = {
+    'n_estimators': [100, 200, 300],  # Number of trees
+    'max_depth': [None, 5, 10, 15],    # Maximum tree depth
+    'min_samples_split': [2, 5, 10],    # Minimum number of samples required to split an internal node
+    'min_samples_leaf': [1, 2, 4],      # Minimum number of samples required to be at a leaf node
+    'max_features': ['sqrt', 'log2']   # Number of features to consider
+}
+
+#creates param grid search with cross-validation
+grid = GridSearchCV(RandomForestClassifier(), 
+param_grid = param_grid, 
+scoring = 'accuracy' , 
+randomstate = 42, 
+verbose = 3, 
+n_jobs = -1)
+
+#use consistent random state for consistent results
+
+#executes grid search
+grid.fit(train_data, train_targets)
+
+#gets best params
+best_params = grid.best_params_
+print("Best Hyperparameters:", best_params)
+
+#Best Hyperparameters: {'max_depth': None, 'max_features': 'sqrt', 'min_samples_leaf': 1, 'min_samples_split': 5, 'n_estimators': 300}
+```
+
+- The results of my exhaustive grid search display the following best parameters from my search: 
+`{'max_depth': None, 'max_features': 'sqrt', 'min_samples_leaf': 1, 'min_samples_split': 5, 'n_estimators': 300}`
+
+The results of this search indicate that likely a further search is needed, given the best value for `'n_estimators'` was the upper bound of the list of values I passed for that parameter , 300.
+
+#### Random Search
+```{python}
+#| eval: false
+#| echo: true
+#performs random search
+param_grid = {
+    'max_depth': randint(100, 1000),
+    'max_features': ['log2' , 'sqrt'],
+    'n_estimators': randint(100 , 1000),
+    'min_samples_split': randint(2, 20)
+}
+
+random_search = RandomizedSearchCV(
+    estimator=RandomForestClassifier(),
+    param_distributions=param_grid,
+    n_iter=100,  # Number of parameter settings that are sampled
+    cv=5, # num of folds
+    scoring='accuracy', #scoring metric
+    random_state=42,
+    verbose=3, #depth of real-time report
+    n_jobs=-1  # Use all available processing power
+)
+
+# Fit the model with the training data
+random_search.fit(train_data, train_targets)
+
+# Returns the best parameters when finished
+best_params = random_search.best_params_
+
+print("Best Hyperparameters:", best_params)
+```
+
+- The results of my random search were as follows: `{'max_depth': 537, 'max_features': 'sqrt', 'min_samples_split': 3, 'n_estimators': 376}`
+
+I decided to primarily use the results of the random search because of the lower time consumption, and having a larger distribution to try. I also felt that since it met and exceeded the goal of 90% accuracy, it was sufficient.
+
+### Step 3: Final Model Training
+Below is the final implementation of my model.
+```{python}
+model = None #to reset the model from previous fits
+
+#classifier = RandomForestClassifier() 
+#default parameters results in 0.9239 average accuracy
+
+model = RandomForestClassifier(max_depth = 537, max_features = 'sqrt', n_estimators = 376 , min_samples_split = 3 , random_state = 42, n_jobs = -1)
+
+#splits data
+train_data, test_data, train_targets, test_targets = train_test_split(features, target, test_size=.3, random_state = 42)
+
+#train
+model.fit(train_data , train_targets)
+
+#predict
+targets_predicted = model.predict(test_data)
+
+#compare
+
+np1 = test_targets.to_numpy()
+np2 = targets_predicted
+  
+#Calculates Evaluation Metrics
+acc = metrics.accuracy_score(np1 , np2)
+prec = metrics.precision_score(np1, np2)
+rec = metrics.recall_score(np1, np2)
+f1 = metrics.f1_score(np1, np2)
+
+print('Accuracy:' , acc)
+print('Precision:' , prec)
+print('Recall:' , rec)
+
+```
+
+### Final Results
+The final average accuracy was 0.9294442828047716, or about __93%__. This exceeds the required 90% accuracy.
+
+## Question|Task 3
+
+__Justify your classification model by discussing the most important features selected by your model. This discussion should include a chart and a description of the features.__
+
+Below is a chart displaying feature importance by feature.
+
+```{python}
+feat_import = model.feature_importances_ #gets importance
+fi = dict(zip(features.columns, feat_import)) #assigns features to corresponding importance
+fi = dict(sorted(fi.items(), key=lambda item: item[1], reverse=True))#sorts highest to lowest
+
+#displays results
+fifig = px.bar(
+  x = list(fi.keys()),
+  y = list(fi.values()),
+  color = list(fi.values()),
+  title = 'Feature Importance by Feature'
+).update_layout(
+  title_x = 0.5,
+  xaxis_title = 'Feature',
+  yaxis_title = 'Importance'
+)
+
+fifig.show()
+```
+
+The three feature with highest importance are `'livearea'`, `'arcstyle_ONE-STORY'`, and `'gartype_Att'`. That means that the model determined that these are the most important features to use in making predictions. Their values hold more weight in the model's decision-making. Many of the values with higher importance values also had higher correlation values in the previously-calculated correlation matrix.
+
+## Question|Task 4
+
+__Describe the quality of your classification model using 2-3 different evaluation metrics. You also need to explain how to interpret each of the evaluation metrics you use.__
+
+The three other metrics I decided to use to evaluate the model were accuracy, a confusion matrix, and a classification report. 
+
+### Confusion Matrix
+```{python}
+cm = metrics.confusion_matrix(np1, np2)
+print("Confusion Matrix:\n" , cm)
+```
+
+#### Interpretation
+- True Negatives:  (TN): 2298
+- False Negatives: (FN): 214
+- True Positives:  (TP): 4091
+- False Positives: (FP): 271
+
+Overall, we can see that the majority of the data was predicted correctly (TN + TP). Out of the data that was predicted incorrectly, false positives were more common than false negatives (FP > FN). However, there are also far more total positive predictions than negative (TP + FP > TN + FN). This matrix can be used to calculate certain ratios that will help to gain further insight into the data.
+
+### Classification Report
+```{python}
+report = metrics.classification_report(np1, np2)
+print('Classification Report\n' , report)
+```
+
+#### Interpretation
+- __Precision Score:__
+Out of all the times the model predicted a house built before 1980, it was correct about __91%__ of the time. Out of all the times the model predicted a house not built before 1980, it was right about __94%__ of the time. Overall, on average, the model was correct about __93%__ of the time it predicted true or false.
+- __Recall Score:__
+Out of all of the house built before 1980 in the testing data, the model correctly predicted about __89%__ of the time. Out of all the houses that were not built before 1980, the model identified them about __95%__ of the time. Of all the samples that were true or false, the model correctly identified about __92%__ of them.
+- __F1 Score:__
+Given an average f1 score of about __92%__, it seems that the model does a decent job of balancing precision and recall. The model has high precision and recall, indicating good overall performance. 
+- __Support__
+Each support value indicates how many samples were in each class. From this report we can see there were significantly more samples that were before 1980 than were not. This could potentially skew the results and affect the overall accuracy. Maybe this explains why the model was better at correctly classifying samples from before 1980 than it was at predicting samples that were not from before 1980.
+
+### Accuracy
+```{python}
+print('Accuracy Score:' , acc)
+```
+
+Accuracy was the main, defining scoring metric of the model. It was the metric used to find the best parameters, and it was the target involved in the goal of this project. The overall accuracy of the model was about __93%__. This means that of all predictions made, the model correctly classified __93%__ of the samples.
+
+
+
+
+
+
+
+

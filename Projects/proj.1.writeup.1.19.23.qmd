@@ -1,0 +1,235 @@
+---
+title: "Client Report - Project 1: Names"
+subtitle: "Course DS 250"
+author: "Andrew Belz"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+```{python}
+#| label: libraries
+#| include: false
+import pandas as pd
+import numpy as np
+import plotly.express as px
+
+df = pd.read_csv('names_year.csv')
+```
+
+
+## Elevator Pitch
+The popularity of my name, `Andrew`, was on the decline at the time of my birth. You are most likely to meet someone named `Brittany` around the age of 32. The names `Peter`, `Paul`, `Martha`, and `Mary` have all seen similar trends in popularity over the years, with some notable differences. The popularity of the names `Marty` and `Martin` seem to have been somewhat affected by the movie "Back to the Future," as I originally hypothesized. 
+
+## Question|Task 1
+
+__How does your name at your birth year compare to its use historically?__
+
+### Working with the Data
+The first step is loading and graphing the data for my name, `Andrew`. I created a new dataframe with the relevant data using the `.query()` function. Then I created a simple line plot showing the usage of of "Andrew" historically, with some visual indicators for the data point located at the year of my birth, `2003`.
+
+```{python}
+#builds new dataframe with instances of "Andrew"
+andrew_df = df.query('name == "Andrew"')
+
+#makes graph; x is year, y is total instances
+fig = px.line(
+    andrew_df,
+    x = 'year',
+    y = 'Total',
+    title = 'Historical Use of "Andrew"',
+    labels = {'year': 'Year'}
+).update_traces(
+    line_color = 'black')
+
+fig.add_vline(x = 2003, line_dash = 'dash', line_color = 'green')#my birthyear
+fig.add_hline(y = 20421, line_dash = 'dash', line_color = 'red')#total instances for my birth year
+
+fig.update_layout(
+    title_x = 0.5)
+
+fig.show()
+```
+
+### Analysis
+At the time of my birth, the name `Andrew` was certainly more popular than the majority of other years. However, my birth occurs several years after `Andrew`'s peak popularity in `1990`.
+
+However, its popularity wasn't a direct influence in my parent's decision to name me `Andrew`. I share a name with my father. So out of curiosity, I decided to compare how the popularity of the name during his birth year, `1977`, measures up (displayed in purple):
+
+```{python}
+fig.add_vline(x = 1977, line_dash = 'dash', line_color = 'purple')#my father's birth year
+
+fig.show()
+```
+
+Interestingly, the name was less popular during the birth year of my father, and it was 13 years before its peak popularity.
+
+## Question|Task 2
+
+__If you talked to someone named Brittany on the phone, what is your guess of his or her age? What ages would you not guess?__
+
+### Working with the Data
+The first step in answering this question is pulling the data for the name `Brittany` and displaying it visually with a line graph. I added a column of data representing real ages rather than years for relevancy.
+
+```{python}
+brittany_df = df.query('name == "Brittany"')
+new_index = [i for i in range(0, len(brittany_df))]
+brittany_df = brittany_df.set_index(pd.Index(new_index))#sets a new 0-based index for easier referencing to replace index from previous df
+
+brittany_df['true_ages'] = [2024-brittany_df.at[i, 'year'] for i in range(len(brittany_df))]
+#this creates a new column in the dataframe to allow easier, more relevant data to the question at hand;
+#I wrote this code using list comprehension before we learned about the .apply() function in class
+
+brit_fig = px.line( #creates line plot
+    brittany_df,
+    x = 'true_ages',
+    y = 'Total',
+    title = 'Total Occurences of "Brittany" by Age',
+    labels = {'true_ages' : 'Age', 'Total' : 'Total per age group'}
+)
+
+brit_fig.update_layout(#formatting title
+    title_x = 0.5
+)
+
+brit_fig.show()
+```
+
+This graph is useful to help visualize the data; however, the real value lies in some statistical analysis of the data, using the `.describe()` method:
+
+```{python}
+#brittany_df['true_ages'].describe()
+#reference for analysis
+
+brit_fig.add_vline(x = 20.75, line_dash = 'dot', line_color = 'red')
+brit_fig.add_vline(x = 44.25, line_dash = 'dot', line_color = 'red')
+
+#displays lines at 25% and 75% quartiles
+
+brit_fig.show()
+```
+
+### Analysis
+50% of the data falls between the ages of `20.75` and `44.25`, with a mean age of `32.5`. Thus, it can reasonably be assumed that the if one were to encounter a person named "Brittany," it is reasonably probable that they are between the ages of 20 and 45, most likely around the age of 32. The range of the age data is `[9, 56]`, so I would assume that the person I am talking to is not younger than 9 or older than 56.
+
+## Question|Task 3
+
+__Mary, Martha, Peter, and Paul are all Christian names. From 1920 - 2000, compare the name usage of each of the four names. What trends do you notice?__
+
+### Working with the Data
+First, I pulled the data and created a visualization based on the given parameters.
+
+```{python}
+mmpp_df = df.query('name == "Mary" or name == "Martha" or\
+                name == "Peter" or name == "Paul"').query('1920 <= year <= 2000')#creates new df
+
+mmpp_fig = px.line(#creates line plot for year vs Total
+    mmpp_df,
+    x = 'year',
+    y = 'Total',
+    color = 'name',
+    title = 'Historical Use of "Martha," "Mary," "Paul," and "Peter"',
+    labels = {'year': 'Year'}
+)
+
+mmpp_fig.update_layout(
+    title_x = 0.5
+)
+
+#creates lines that contain the peak of each line
+mmpp_fig.add_vline(x = 1943, line_dash = 'dot', line_color = 'black')
+mmpp_fig.add_vline(x = 1960, line_dash = 'dot', line_color = 'black')
+
+mmpp_fig.show()
+```
+
+### Analysis
+As shown in the graph, all four names have similar popularity intervals, with each name's peak popularity occuring between 1947 and 1956. `Mary` was significantly more popular than the others, with a peak total (53.791k) twice as great as the next most popular name, `Paul` (25.6625k). All four names have seen significant decline in popularity in recent years. I would speculate that these names have declined in popularity because the Bible has also declined in popularity.
+
+## Question|Task 4
+
+__Think of a unique name from a famous movie. Plot the usage of that name and see how changes line up with the movie release. Does it look like the movie had an effect on usage?__
+
+### Working with the Data
+For this task, I decided to use the character Marty McFly from "Back to the Future." The first movie was released in `1985`. I reasoned that many parents who look to name their children `Marty` might legally name their child `Martin` and call them `Marty` as a nickname. Thus, both names are included in my analysis. 
+
+Here is the visualization I created; the black line indicates the movie's release year, and the green line shows a small spike following the release:
+
+```{python}
+#creates new df
+dfa = df.query('name == "Marty" or name == "Martin"')
+
+#creates visualization with year vs Total
+dfa_fig = px.line(
+    dfa,
+    x = 'year',
+    y = 'Total',
+    color = 'name',
+    title = 'Historical Use of "Martin" and "Marty"',
+    labels = {'year': 'Year'}
+)
+dfa_fig.update_layout(
+    title_x = 0.5
+)
+
+dfa_fig.add_vline(x = 1985, 
+                  line_dash = 'dot',
+                  line_color = 'black',
+                  name = 'Release of Back to the Future'
+                  )#release year of movie
+dfa_fig.add_vline(x = 1990, 
+                  line_dash = 'dot', 
+                  line_color = 'green',
+                  name = 'Increase in "Martin" in 1990'
+                  )#small spike in total
+dfa_fig.show()
+```
+
+### Analysis
+Both names seem to share similar trends in popularity; thus I feel it was right to include both in my analysis. Although `Martin`'s spike was more pronounced, both names experienced a small increase in popularity in `1990`. My theory for this is that the majority of fans of the movie "Back to the Future" were teenagers at the time of the release, and it was several years after that many of them started to have children. 
+
+However, I noticed that the names were significantly more popular in the interval from the `1950`'s to `1968`, and I was curious as to why. After some speculation, I have developed another theory for this. Below, the vertical lines show the bounds of the interval during which Martin Luther King Jr. was heavily involved in the Civil Rights Movement:
+
+```{python}
+dfa_fig = px.line(
+    dfa,
+    x = 'year',
+    y = 'Total',
+    color = 'name',
+    title = 'Historical Use of "Martin" and "Marty"',
+    labels = {'year': 'Year'}
+)
+dfa_fig.update_layout(
+    title_x = 0.5
+)
+
+dfa_fig.add_vline(x = 1955, 
+                  line_dash = 'dot', 
+                  line_color = 'maroon'
+                )
+dfa_fig.add_vline(x = 1968, 
+                  line_dash = 'dot', 
+                  line_color = 'maroon'
+                )
+
+dfa_fig.show()
+```
+
+Based on this observation, I hypothesize that world events and real people have a much bigger impact on the names of newborn babies than fictional characters do.
