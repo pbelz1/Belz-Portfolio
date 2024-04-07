@@ -60,7 +60,7 @@ I cleaned up the column names of the data set to allow for use in pandas. I mani
 #| label: project data
 #| code-summary: Read and format project data
 # Include and execute your code here
-df = pd.read_csv(r'C:\Users\andre\Desktop\ds250\data_files\starwars_edited.csv')
+df = pd.read_csv(r'C:\Users\andre\OneDrive\Desktop\ds250\data_files\starwars_edited.csv')
 
 #drops first row with descriptions of the columns from original data set
 df = df.drop(index = 0)
