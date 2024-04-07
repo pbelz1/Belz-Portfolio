@@ -2,7 +2,7 @@ project:
   type: website
 
 website:
-  title: "Your_Name Data Science Portfolio"
+  title: "Andrew Belz's Data Science Portfolio"
   favicon: Images/favicon.png
   back-to-top-navigation: true
   repo-url: https://github.com/your_url
@@ -10,10 +10,10 @@ website:
 
   page-footer: 
     border: true
-    left: "Your_Name 2023©"
+    left: "Andrew Belz 2023©"
     right: 
       - icon: linkedin
-        href: Your_LinkedIn_URL
+        href: www.linkedin.com/in/peter-belz-2aba70220
 
   navbar:
     background: primary
@@ -25,18 +25,18 @@ website:
         file: projects.qmd
       - text: "My Resume"
         file: resume.qmd
-      - text: "Data Cleansing"
-        file: cleansing.qmd
-      - text: "Data Exploration"
-        file: exploration.qmd
-      - text: "Story Telling"
-        file: story_telling.qmd
-      - text: "Machine Learning"
-        file: ml.qmd
-      - text: "Full Stack"
-        file: full_stack.qmd
-      - text: "Competition"
-        file: competition.qmd
+#      - text: "Data Cleansing"
+#        file: cleansing.qmd
+#      - text: "Data Exploration"
+#        file: exploration.qmd
+#      - text: "Story Telling"
+#        file: story_telling.qmd
+#      - text: "Machine Learning"
+#        file: ml.qmd
+#      - text: "Full Stack"
+#        file: full_stack.qmd
+#      - text: "Competition"
+#        file: competition.qmd
       
   sidebar:
     - title: "DS 250 Projects"
