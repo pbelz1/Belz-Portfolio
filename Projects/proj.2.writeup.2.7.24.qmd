@@ -42,7 +42,7 @@ I transformed the data to make it more useable. I analyzed the delays and determ
 
 #this is my file path; I am not sure how the final html document works with reading files, but if I need to resubmit with different file path, please let me know.
 
-df = pd.read_json(r'C:\Users\andre\Desktop\ds250\data_files\flights_missing.json')
+df = pd.read_json(r'https://raw.githubusercontent.com/byuidatascience/data4missing/master/data-raw/flights_missing/flights_missing.json')
 ```
 
 ## Question|Task 1
