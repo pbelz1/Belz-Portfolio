@@ -73,7 +73,7 @@ __Shorten the column names and clean them up for easier use with pandas. Provide
 Unedited, pandas couldn't even read the column headings. This is how the column headings read originally:
 
 ```{python}
-with open(r'"C:\Users\andre\OneDrive\Desktop\ds250\data_files\starwars.csv"') as starwars:
+with open(r'C:\Users\andre\OneDrive\Desktop\ds250\data_files\starwars.csv') as starwars:
   txt = starwars.read()
 txt = txt.split('\n')
 
